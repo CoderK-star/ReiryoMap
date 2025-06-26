@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<link rel="icon" href="images/Reitaku.jpg">
+	<title>Reitaku University Map</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- MapLibre GL JS CSS -->
+	<link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
+	<style>
+		body, html { height: 100%; margin: 0; padding: 0; }
+		#map { width: 100vw; height: 100vh; }
+		/* Ensure custom zoom buttons are always on top */
+		#zoom-in-btn, #zoom-out-btn {
+			box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+			transition: 0.2s;
+		}
+		#zoom-in-btn:hover, #zoom-out-btn:hover {
+			background: #f0f0f0;
+		}
+		#header-bar {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100vw;
+			background: #43c59e;
+			color: #fff;
+			text-align: center;
+			padding: 12px 0 4px 0;
+			z-index: 10;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+		}
+		#header-bar h1 {
+			margin: 0;
+			font-size: 2em;
+			font-weight: bold;
+			letter-spacing: 0.1em;
+		}
+		#header-bar p {
+			margin: 0;
+			font-size: 1em;
+			letter-spacing: 0.08em;
+		}
+		#map {
+			position: absolute;
+			top: 64px;
+			left: 0;
+			width: 100vw;
+			height: calc(100vh - 64px);
+		}
+	</style>
+</head>
+<body>
+	<div id="header-bar">
+		<h1>麗陵祭マップ</h1>
+		<p>Reiryo Map</p>
+	</div>
+	<div id="map"></div>
+	<script src="js/getdata.js"></script>
+	<script src="js/map.js"></script>
+	<!-- MapLibre GL JS -->
+	<script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+	<script>
+		
+	</script>
+</body>
+</html>
