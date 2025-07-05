@@ -23,7 +23,7 @@
 			top: 0;
 			left: 0;
 			width: 100vw;
-			background: #43c59e;
+			background: #3b6663; /* Match sidepanel green */
 			color: #fff;
 			text-align: center;
 			padding: 12px 0 4px 0;
@@ -48,6 +48,30 @@
 			width: 100vw;
 			height: calc(100vh - 64px);
 		}
+		#sidepanel {
+			position: absolute;
+			top: 0; /* Cover the header */
+			right: 0;
+			width: 320px;
+			height: 100vh; /* Cover the header */
+			background: #3b6663; /* Green background */
+			color: #ffffff;      /* white text */
+			z-index: 20;
+			box-shadow: -2px 0 8px rgba(0,0,0,0.12);
+			padding: 24px 20px 20px 20px;
+			overflow-y: auto;
+			transition: transform 0.2s;
+		}
+		#sidepanel-content {
+			margin-top: 24px;
+			word-break: break-word;
+		}
+		@media (max-width: 600px) {
+			#sidepanel {
+				width: 90vw;
+				padding: 16px 8px 8px 8px;
+			}
+		}
 	</style>
 </head>
 <body>
@@ -55,13 +79,24 @@
 		<h1>麗陵祭マップ</h1>
 		<p>Reiryo Map</p>
 	</div>
+	<div id="sidepanel" style="display:none;">
+		<button id="close-sidepanel" style="position:absolute;top:8px;right:12px;font-size:20px;background:none;border:none;color:#111;cursor:pointer;">×</button>
+		<div id="sidepanel-content"></div>
+	</div>
 	<div id="map"></div>
 	<script src="js/getdata.js"></script>
 	<script src="js/map.js"></script>
 	<!-- MapLibre GL JS -->
 	<script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
 	<script>
-		
+		// Sidepanel close logic
+		document.addEventListener('DOMContentLoaded', function() {
+			const sidepanel = document.getElementById('sidepanel');
+			const closeBtn = document.getElementById('close-sidepanel');
+			if (closeBtn) {
+				closeBtn.onclick = () => { sidepanel.style.display = 'none'; };
+			}
+		});
 	</script>
 </body>
 </html>

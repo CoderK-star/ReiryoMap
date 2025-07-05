@@ -87,6 +87,110 @@ function initmap() {
 		}, 0);
 	}
 
+	// Category color map (update as requested)
+	const categoryColors = {
+		"イベント": "#e74c3c",   // red
+		"体験": "#f1c40f",       // yellow
+		"展示": "#3498db",       // blue
+		"食べ物": "#ff9800",     // orange
+		"場所": "#43c59e",       // green
+		"交通": "#9b59b6"        // purple
+	};
+	const categoryIcons = {
+		"イベント": "images/show.png",
+		"体験": "images/Activity.png",
+		"展示": "images/Exhibit.png",
+		"食べ物": "images/food.png",
+		"交通": "images/transportation.png"
+	};
+	const defaultColor = "#43c59e";
+
+	// Store markers by category for toggling
+	const categoryMarkers = {};
+
+	// --- Create legend container in HTML first ---
+	let legend = document.getElementById('category-legend');
+	let legendToggleBtn = document.getElementById('category-legend-toggle-btn');
+	if (!legendToggleBtn) {
+		legendToggleBtn = document.createElement('button');
+		legendToggleBtn.id = 'category-legend-toggle-btn';
+		legendToggleBtn.textContent = 'カテゴリ表示';
+		legendToggleBtn.style.position = 'absolute';
+		legendToggleBtn.style.top = '32px';
+		legendToggleBtn.style.left = '16px';
+		legendToggleBtn.style.zIndex = 31;
+		legendToggleBtn.style.padding = '8px 16px';
+		legendToggleBtn.style.borderRadius = '6px';
+		legendToggleBtn.style.border = '1px solid #ccc';
+		legendToggleBtn.style.background = '#fff';
+		legendToggleBtn.style.cursor = 'pointer';
+		legendToggleBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)';
+		document.body.appendChild(legendToggleBtn);
+	}
+
+	if (!legend) {
+		legend = document.createElement('div');
+		legend.id = 'category-legend';
+		legend.style.position = 'absolute';
+		legend.style.top = '80px';
+		legend.style.left = '16px';
+		legend.style.background = '#fff';
+		legend.style.border = '1px solid #ccc';
+		legend.style.borderRadius = '8px';
+		legend.style.padding = '12px 16px';
+		legend.style.zIndex = 30;
+		legend.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)';
+		legend.style.display = 'none'; // Hide by default
+
+		const title = document.createElement('b');
+		title.textContent = 'カテゴリ';
+		legend.appendChild(title);
+		legend.appendChild(document.createElement('br'));
+
+		// --- Add "Show All" checkbox ---
+		const showAllLabel = document.createElement('label');
+		showAllLabel.style.display = 'flex';
+		showAllLabel.style.alignItems = 'center';
+		showAllLabel.style.margin = '4px 0';
+		showAllLabel.style.cursor = 'pointer';
+
+		const showAllCheckbox = document.createElement('input');
+		showAllCheckbox.type = 'checkbox';
+		showAllCheckbox.id = 'legend-toggle-showall';
+		showAllCheckbox.checked = true;
+		showAllCheckbox.style.marginRight = '6px';
+
+		const showAllText = document.createElement('span');
+		showAllText.textContent = 'すべて表示';
+
+		showAllLabel.appendChild(showAllCheckbox);
+		showAllLabel.appendChild(showAllText);
+		legend.appendChild(showAllLabel);
+
+		showAllCheckbox.addEventListener('change', function() {
+			const visible = this.checked;
+			// Set all category checkboxes and markers to match
+			Object.keys(categoryMarkers).forEach(categoryKey => {
+				const cb = document.getElementById(`legend-toggle-${categoryKey}`);
+				if (cb) cb.checked = false; // Uncheck all other category checkboxes
+				(categoryMarkers[categoryKey] || []).forEach(marker => {
+					const el = marker.getElement();
+					el.style.display = visible ? '' : 'none';
+				});
+			});
+		});
+
+		document.body.appendChild(legend);
+	}
+
+	// Toggle legend visibility on button click
+	legendToggleBtn.onclick = function() {
+		legend.style.display = (legend.style.display === 'none' ? 'block' : 'none');
+	};
+
+	// Track which categories have been added to the legend
+	const legendCategories = new Set();
+
 	if (Array.isArray(dataObject)) {
 		dataObject.forEach(item => {
 			const lat = Number(item.lat);
@@ -100,9 +204,105 @@ function initmap() {
 				console.warn(`Invalid lat/lon for item:`, item);
 				return;
 			}
-			const marker = new maplibregl.Marker()
-				.setLngLat([lon, lat])
-				.addTo(map);
+			// Ensure category is present and trimmed
+			const cat = (item.category || "場所").trim();
+			const color = categoryColors[cat] || defaultColor;
+			const iconUrl = categoryIcons[cat] || null;
+
+			// --- Add category to legend if not already present ---
+			if (!legendCategories.has(cat)) {
+				const id = `legend-toggle-${cat}`;
+				const label = document.createElement('label');
+				label.style.display = 'flex';
+				label.style.alignItems = 'center';
+				label.style.margin = '4px 0';
+				label.style.cursor = 'pointer';
+
+				const checkbox = document.createElement('input');
+				checkbox.type = 'checkbox';
+				checkbox.id = id;
+				checkbox.checked = false; // Make category checkboxes unchecked by default
+				checkbox.style.marginRight = '6px';
+
+				const colorDot = document.createElement('span');
+				colorDot.style.display = 'inline-block';
+				colorDot.style.width = '16px';
+				colorDot.style.height = '16px';
+				colorDot.style.background = color;
+				colorDot.style.borderRadius = '50%';
+				colorDot.style.marginRight = '8px';
+				colorDot.style.border = '1px solid #aaa';
+
+				const catName = document.createElement('span');
+				catName.textContent = cat;
+
+				label.appendChild(checkbox);
+				label.appendChild(colorDot);
+				label.appendChild(catName);
+
+				legend.appendChild(label);
+
+				checkbox.addEventListener('change', function() {
+					if (this.checked) {
+						// Hide all other categories, show only this one
+						Object.keys(categoryMarkers).forEach(categoryKey => {
+							const show = categoryKey === cat;
+							(categoryMarkers[categoryKey] || []).forEach(marker => {
+								const el = marker.getElement();
+								el.style.display = show ? '' : 'none';
+							});
+							// Set checkbox state to reflect visibility
+							const cb = document.getElementById(`legend-toggle-${categoryKey}`);
+							if (cb) cb.checked = show;
+						});
+						// Uncheck "Show All" if only one is shown
+						const showAllCb = document.getElementById('legend-toggle-showall');
+						if (showAllCb) showAllCb.checked = false;
+					} else {
+						// Hide this category only
+						(categoryMarkers[cat] || []).forEach(marker => {
+							const el = marker.getElement();
+							el.style.display = 'none';
+						});
+						// Uncheck "Show All" if any category is hidden
+						const showAllCb = document.getElementById('legend-toggle-showall');
+						if (showAllCb) showAllCb.checked = false;
+					}
+				});
+
+				legendCategories.add(cat);
+			}
+			// --- end legend creation ---
+
+			let marker;
+			if (iconUrl) {
+				// Use custom icon for marker
+				const el = document.createElement('div');
+				el.style.width = '48px';
+				el.style.height = '48px';
+				el.style.background = 'none';
+				el.style.display = 'flex';
+				el.style.alignItems = 'center';
+				el.style.justifyContent = 'center';
+
+				const img = document.createElement('img');
+				img.src = iconUrl;
+				img.style.width = '44px';
+				img.style.height = '44px';
+				img.style.display = 'block';
+				img.style.objectFit = 'contain';
+
+				el.appendChild(img);
+
+				marker = new maplibregl.Marker({ element: el })
+					.setLngLat([lon, lat])
+					.addTo(map);
+			} else {
+				// Fallback to color marker
+				marker = new maplibregl.Marker({ color })
+					.setLngLat([lon, lat])
+					.addTo(map);
+			}
 
 			const popup = new maplibregl.Popup({ offset: 25 })
 				.setHTML(
@@ -115,14 +315,31 @@ function initmap() {
 			marker.getElement().addEventListener('mouseenter', () => popup.addTo(map).setLngLat([lon, lat]));
 			marker.getElement().addEventListener('mouseleave', () => popup.remove());
 
-			// Center the map on every marker when clicked
+			// Center the map and show sidepanel on every marker click
 			marker.getElement().addEventListener('click', (e) => {
 				map.easeTo({ center: [lon, lat], duration: 180 });
+
+				// Show sidepanel with marker info
+				const sidepanel = document.getElementById('sidepanel');
+				const sidepanelContent = document.getElementById('sidepanel-content');
+				if (sidepanel && sidepanelContent) {
+					sidepanelContent.innerHTzML =
+						`<h2 style="margin-top:0;">${item.title}</h2>` +
+						(item.location ? `<div><b>場所:</b> ${item.location}</div>` : '') +
+						(item.organizer ? `<div><b>主催:</b> ${item.organizer}</div>` : '') +
+						(item.explanation ? `<div style="margin-top:12px;">${item.explanation}</div>` : '');
+					sidepanel.style.display = 'block';
+				}
+				popup.remove(); // Hide popup if sidepanel is shown
 			});
 
 			const key = `${lat},${lon}`;
 			if (!markerMap.has(key)) markerMap.set(key, []);
 			markerMap.get(key).push({ marker, item, popup, lat, lon });
+
+			// Store marker by category for toggling
+			if (!categoryMarkers[cat]) categoryMarkers[cat] = [];
+			categoryMarkers[cat].push(marker);
 		});
 	}
 
@@ -138,11 +355,6 @@ function initmap() {
 		});
 	});
 	
-
-	// Optional: Add a marker at the university
-	new maplibregl.Marker()
-		.setLngLat([139.955303, 35.833707])
-		.addTo(map);
 
 	// Add custom zoom in/out buttons with icons at the bottom right
 	const zoomControl = document.createElement('div');
