@@ -79,24 +79,10 @@
 		<h1>麗陵祭マップ</h1>
 		<p>Reiryo Map</p>
 	</div>
-	<div id="sidepanel" style="display:none;">
-		<button id="close-sidepanel" style="position:absolute;top:8px;right:12px;font-size:20px;background:none;border:none;color:#111;cursor:pointer;">×</button>
-		<div id="sidepanel-content"></div>
-	</div>
 	<div id="map"></div>
 	<script src="js/getdata.js"></script>
 	<script src="js/map.js"></script>
 	<!-- MapLibre GL JS -->
 	<script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
-	<script>
-		// Sidepanel close logic
-		document.addEventListener('DOMContentLoaded', function() {
-			const sidepanel = document.getElementById('sidepanel');
-			const closeBtn = document.getElementById('close-sidepanel');
-			if (closeBtn) {
-				closeBtn.onclick = () => { sidepanel.style.display = 'none'; };
-			}
-		});
-	</script>
 </body>
 </html>

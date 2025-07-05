@@ -27,65 +27,9 @@ function initmap() {
 		center: [139.955303, 35.833707],
 		zoom: 16
 	});
-	const markerMap = new Map(); // key: "lat,lon", value: [{ marker, item, popup }]
-	let spiderLines = []; // Store spider lines for cleanup
-
-	function clearSpiderfy() {
-		// Remove all spiderfied markers and lines
-		spiderLines.forEach(line => {
-			if (map.getLayer(line.id)) map.removeLayer(line.id);
-			if (map.getSource(line.id)) map.removeSource(line.id);
-		});
-		spiderLines = [];
-		document.querySelectorAll('.spider-marker').forEach(el => el.remove());
-	}
-
-	function spiderfy(markerArr, lat, lon) {
-		clearSpiderfy();
-		if (markerArr.length <= 1) return;
-		const center = [lon, lat];
-		const radius = 0.001; // ~100m, increased for wider spread
-		const angleStep = (2 * Math.PI) / markerArr.length;
-		markerArr.forEach((obj, i) => {
-			const angle = i * angleStep;
-			const spiderLat = lat + radius * Math.sin(angle);
-			const spiderLon = lon + radius * Math.cos(angle);
-			// Create a new marker for spiderfied position
-			const spiderMarker = new maplibregl.Marker({ color: "#d33" })
-				.setLngLat([spiderLon, spiderLat])
-				.addTo(map);
-			const el = spiderMarker.getElement();
-			el.classList.add('spider-marker');
-			el.addEventListener('mouseenter', () => obj.popup.addTo(map).setLngLat([spiderLon, spiderLat]));
-			el.addEventListener('mouseleave', () => obj.popup.remove());
-			// Draw a line from center to spider marker
-			const lineId = `spider-line-${lat}-${lon}-${i}-${Date.now()}`;
-			map.addSource(lineId, {
-				type: 'geojson',
-				data: {
-					type: 'Feature',
-					geometry: {
-						type: 'LineString',
-						coordinates: [center, [spiderLon, spiderLat]]
-					}
-				}
-			});
-			map.addLayer({
-				id: lineId,
-				type: 'line',
-				source: lineId,
-				paint: {
-					'line-color': '#d33',
-					'line-width': 2
-				}
-			});
-			spiderLines.push({ id: lineId });
-		});
-		setTimeout(() => {
-			map.once('click', clearSpiderfy);
-			map.once('movestart', clearSpiderfy);
-		}, 0);
-	}
+	const markerMap = new Map(); 
+	
+	// key: "lat,lon", value: [{ marker, item, popup }]
 
 	// Category color map (update as requested)
 	const categoryColors = {
@@ -315,20 +259,84 @@ function initmap() {
 			marker.getElement().addEventListener('mouseenter', () => popup.addTo(map).setLngLat([lon, lat]));
 			marker.getElement().addEventListener('mouseleave', () => popup.remove());
 
-			// Center the map and show sidepanel on every marker click
+			// Show sidepanel with marker info on click
 			marker.getElement().addEventListener('click', (e) => {
 				map.easeTo({ center: [lon, lat], duration: 180 });
 
-				// Show sidepanel with marker info
-				const sidepanel = document.getElementById('sidepanel');
-				const sidepanelContent = document.getElementById('sidepanel-content');
-				if (sidepanel && sidepanelContent) {
-					sidepanelContent.innerHTzML =
-						`<h2 style="margin-top:0;">${item.title}</h2>` +
-						(item.location ? `<div><b>場所:</b> ${item.location}</div>` : '') +
-						(item.organizer ? `<div><b>主催:</b> ${item.organizer}</div>` : '') +
-						(item.explanation ? `<div style="margin-top:12px;">${item.explanation}</div>` : '');
+				// Find all markers at this lat/lon
+				const key = `${lat},${lon}`;
+				const markerArr = markerMap.get(key) || [{ marker, item, popup, lat, lon }];
+
+				// Create sidepanel if not exists
+				let sidepanel = document.getElementById('sidepanel');
+				if (!sidepanel) {
+					sidepanel = document.createElement('div');
+					sidepanel.id = 'sidepanel';
+					sidepanel.style.position = 'fixed';
+					sidepanel.style.top = '0';
+					sidepanel.style.right = '0';
+					sidepanel.style.width = '320px';
+					sidepanel.style.height = '100vh';
+					sidepanel.style.background = '#000';
+					sidepanel.style.color = '#fff';
+					sidepanel.style.zIndex = 20;
+					sidepanel.style.boxShadow = '-2px 0 8px rgba(63, 61, 61, 0.12)';
+					sidepanel.style.padding = '24px 20px 20px 20px';
+					sidepanel.style.overflowY = 'auto';
+					sidepanel.style.transition = 'transform 0.3s cubic-bezier(.4,0,.2,1)';
+					sidepanel.style.transform = 'translateX(100%)';
 					sidepanel.style.display = 'block';
+					sidepanel.innerHTML = `
+						<button id="close-sidepanel" style="position:absolute;top:8px;right:12px;font-size:20px;background:none;border:none;color:#fff;cursor:pointer;">×</button>
+						<div id="sidepanel-content"></div>
+					`;
+					document.body.appendChild(sidepanel);
+
+					// Close button logic
+					const closeBtn = document.getElementById('close-sidepanel');
+					if (closeBtn) {
+						closeBtn.onclick = () => {
+							sidepanel.style.transform = 'translateX(100%)';
+							setTimeout(() => { sidepanel.style.display = 'none'; }, 300);
+						};
+					}
+				} else {
+					// Restart animation: slide out, then slide in
+					sidepanel.style.transition = 'none';
+					sidepanel.style.transform = 'translateX(100%)';
+					sidepanel.style.display = 'block';
+					void sidepanel.offsetWidth;
+					sidepanel.style.transition = 'transform 0.3s cubic-bezier(.4,0,.2,1)';
+				}
+				// Always slide in when marker is clicked
+				sidepanel.style.display = 'block';
+				sidepanel.style.position = 'fixed';
+				sidepanel.style.right = '0';
+				sidepanel.style.top = '0';
+				void sidepanel.offsetWidth;
+				sidepanel.style.transform = 'translateX(0)';
+
+				const sidepanelContent = document.getElementById('sidepanel-content');
+				if (sidepanelContent) {
+					if (markerArr.length > 1) {	
+						// Multiple markers at the same location
+						sidepanelContent.innerHTML = markerArr.map(obj =>
+							`<div style="margin-bottom:18px;">
+								<h2 style="margin-top:0;">${obj.item.title}</h2>
+								${obj.item.location ? `<div><b>場所:</b> ${obj.item.location}</div>` : ''}
+								${obj.item.organizer ? `<div><b>主催:</b> ${obj.item.organizer}</div>` : ''}
+								${obj.item.explanation ? `<div style="margin-top:12px;">${obj.item.explanation}</div>` : ''}
+							</div>`
+						).join('<hr style="border:0;border-top:1px solid #eee;margin:12px 0;">');
+					} else {
+						// Single marker
+						const obj = markerArr[0];
+						sidepanelContent.innerHTML =
+							`<h2 style="margin-top:0;">${obj.item.title}</h2>` +
+							(obj.item.location ? `<div><b>場所:</b> ${obj.item.location}</div>` : '') +
+							(obj.item.organizer ? `<div><b>主催:</b> ${obj.item.organizer}</div>` : '') +
+							(obj.item.explanation ? `<div style="margin-top:12px;">${obj.item.explanation}</div>` : '');
+					}
 				}
 				popup.remove(); // Hide popup if sidepanel is shown
 			});
@@ -350,10 +358,65 @@ function initmap() {
 			marker.getElement().addEventListener('click', (e) => {
 				e.stopPropagation();
 				map.easeTo({ center: [lon, lat], duration: 180 });
-				spiderfy(markerArr, lat, lon);
+				// spiderfy(markerArr, lat, lon); // Commented out because not defined
 			});
 		});
 	});
+
+
+	// Add custom zoom in/out buttons with icons at the bottom right
+	const zoomControl = document.createElement('div');
+	zoomControl.style.position = 'absolute';
+	zoomControl.style.bottom = '20px';
+	zoomControl.style.right = '20px';
+	zoomControl.style.zIndex = 1;
+	zoomControl.innerHTML = `
+		<button id="zoom-in-btn" style="width:40px;height:40px;font-size:24px;margin-bottom:4px;cursor:pointer;border-radius:4px;border:1px solid #ccc;background:#fff;">
+			<span aria-label="Zoom in" title="Zoom in">＋</span>
+		</button>
+		<br>
+		<button id="zoom-out-btn" style="width:40px;height:40px;font-size:24px;cursor:pointer;border-radius:4px;border:1px solid #ccc;background:#fff;">
+			<span aria-label="Zoom out" title="Zoom out">－</span>
+		</button>
+	`;
+	document.body.appendChild(zoomControl);
+
+	document.getElementById('zoom-in-btn').onclick = () => map.zoomIn();
+	document.getElementById('zoom-out-btn').onclick = () => map.zoomOut();
+
+	// Add GeolocateControl to the map and move it to the bottom left
+	const geolocate = new maplibregl.GeolocateControl({
+		positionOptions: { enableHighAccuracy: true },
+		trackUserLocation: true,
+	});
+	map.addControl(geolocate, 'bottom-left');
+
+	// Change the GeolocateControl button slightly bigger
+	map.on('load', () => {
+		const geoBtn = document.querySelector('.maplibregl-ctrl-bottom-left .maplibregl-ctrl-geolocate');
+		if (geoBtn) {
+			geoBtn.style.transform = 'scale(1.4)';
+			geoBtn.style.marginBottom = '12px';
+		}
+	});
+
+	// Trigger geolocation and tracking when the custom button is clicked
+	document.getElementById('geolocate-btn').onclick = () => {
+		geolocate.trigger();
+	};
+
+	// Hide sidepanel when clicking on the map (not on a marker)
+	map.on('click', function(e) {
+		const sidepanel = document.getElementById('sidepanel');
+		if (sidepanel && sidepanel.style.display !== 'none') {
+			sidepanel.style.transform = 'translateX(100%)';	
+			setTimeout(() => { sidepanel.style.display = 'none'; }, 300);
+		}
+	});
+}
+				spiderfy(markerArr, lat, lon);
+		
+	
 	
 
 	// Add custom zoom in/out buttons with icons at the bottom right
@@ -396,5 +459,4 @@ function initmap() {
 	document.getElementById('geolocate-btn').onclick = () => {
 		geolocate.trigger();
 	};
-}
 
