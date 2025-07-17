@@ -352,26 +352,21 @@ function initmap() {
 	});
 
 
-	// Add GeolocateControl to the map and move it to the bottom left
+	// Add GeolocateControl to the map and move it to the top-right position
 	const geolocate = new maplibregl.GeolocateControl({
 		positionOptions: { enableHighAccuracy: true },
 		trackUserLocation: true,
 	});
-	map.addControl(geolocate, 'bottom-left');
+	map.addControl(geolocate, 'top-right');
 
 	// Change the GeolocateControl button slightly bigger
 	map.on('load', () => {
-		const geoBtn = document.querySelector('.maplibregl-ctrl-bottom-left .maplibregl-ctrl-geolocate');
+		const geoBtn = document.querySelector('.maplibregl-ctrl-top-right .maplibregl-ctrl-geolocate');
 		if (geoBtn) {
 			geoBtn.style.transform = 'scale(1.4)';
 			geoBtn.style.marginBottom = '12px';
 		}
 	});
-
-	// Trigger geolocation and tracking when the custom button is clicked
-	document.getElementById('geolocate-btn').onclick = () => {
-		geolocate.trigger();
-	};
 
 	// --- Search bar logic ---
 	const searchInput = document.getElementById('search-input');
@@ -404,6 +399,9 @@ function initmap() {
 		searchInput.onkeydown = e => { if (e.key === "Enter") doSearch(); };
 	}
 }
+		searchBtn.onclick = doSearch;
+		searchInput.onkeydown = e => { if (e.key === "Enter") doSearch(); };
+
 			geoBtn.style.transform = 'scale(1.4)';
 			geoBtn.style.marginBottom = '12px';
 

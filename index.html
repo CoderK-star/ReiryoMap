@@ -125,7 +125,7 @@
 			cursor: pointer;
 			display: flex;
 			align-items: center;
-			transition: background 0.2s;
+			transition: 0.2s;
 		}
 
 		#footer-search button:hover {
@@ -134,6 +134,13 @@
 
 		#footer-search svg {
 			display: block;
+		}
+
+		/* Position geolocate button above header */
+		.maplibregl-ctrl-top-right {
+			top: 8px !important;
+			right: 8px !important;
+			z-index: 100 !important;
 		}
 
 		@media (max-width: 600px) {
