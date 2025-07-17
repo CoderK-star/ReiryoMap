@@ -282,6 +282,9 @@ function initmap() {
 					// Remove any existing custom popups
 					document.querySelectorAll('.custom-slide-popup').forEach(p => p.remove());
 
+					// Find all items at the same original location
+					const sameLocationItems = markerMap.get(origKey) || [];
+					
 					// Create custom sliding popup
 					const popupDiv = document.createElement('div');
 					popupDiv.className = 'custom-slide-popup';
@@ -296,13 +299,28 @@ function initmap() {
 					popupDiv.style.padding = '24px 20px 20px 20px';
 					popupDiv.style.borderRadius = '8px';
 					popupDiv.style.transition = 'right 0.35s cubic-bezier(.4,0,.2,1)';
-					popupDiv.innerHTML = `
+					popupDiv.style.maxHeight = 'calc(100vh - 160px)';
+					popupDiv.style.overflowY = 'auto';
+					
+					let popupContent = `
 						<button id="close-custom-popup" style="position:absolute;top:8px;right:12px;font-size:20px;background:none;border:none;color:#000;cursor:pointer;">×</button>
-						<h2 style="margin-top:0;">${item.title}</h2>
-						${item.location ? `<div><b>場所:</b> ${item.location}</div>` : ''}
-						${item.organizer ? `<div><b>主催:</b> ${item.organizer}</div>` : ''}
-						${item.explanation ? `<div style="margin-top:12px;">${item.explanation}</div>` : ''}
 					`;
+					
+					// Add content for all items at this location
+					sameLocationItems.forEach((locationItem, index) => {
+						const itemData = locationItem.item;
+						if (index > 0) {
+							popupContent += `<hr style="margin: 16px 0; border: 1px solid #eee;">`;
+						}
+						popupContent += `
+							<h2 style="margin-top:${index === 0 ? '0' : '12px'};">${itemData.title}</h2>
+							${itemData.location ? `<div><b>場所:</b> ${itemData.location}</div>` : ''}
+							${itemData.organizer ? `<div><b>主催:</b> ${itemData.organizer}</div>` : ''}
+							${itemData.explanation ? `<div style="margin-top:12px;">${itemData.explanation}</div>` : ''}
+						`;
+					});
+					
+					popupDiv.innerHTML = popupContent;
 					document.body.appendChild(popupDiv);
 
 					// Slide in
