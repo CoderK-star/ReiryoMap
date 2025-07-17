@@ -44,7 +44,7 @@ function initmap() {
 	};
 	const categoryIcons = {
 		"イベント": "images/show.png",
-		"体験": "images/Activity.png",
+		"体験": "images/activity.png", // Changed from "Activity.png" to "activity.png"
 		"展示": "images/Exhibit.png",
 		"食べ物": "images/food.png",
 		"交通": "images/transportation.png"
@@ -253,6 +253,15 @@ function initmap() {
 					img.style.height = '44px';
 					img.style.display = 'block';
 					img.style.objectFit = 'contain';
+					
+					// Add error handling for missing images
+					img.onerror = function() {
+						// Fallback to colored marker if image fails to load
+						el.style.display = 'none';
+						marker = new maplibregl.Marker({ color })
+							.setLngLat([markerLon, markerLat])
+							.addTo(map);
+					};
 
 					el.appendChild(img);
 
